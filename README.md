@@ -12,21 +12,37 @@ The Vault Secrets Operator is a Kubernetes operator that syncs secrets between V
 # Install Vault cluster
 ![alt text](image-1.png)
 
-Install Vault using Helm
+Start service if using minikube
+```
+minikube service vault-ui -n vault
+```
 
-`helm repo add hashicorp https://helm.releases.hashicorp.com && helm repo update hashicorp`
-`helm install vault hashicorp/vault --create-namespace -n vault --values vault/values.yml`
+If you want to enable access to vault interface, first get the logs:
+```
+$ k get logs -n vault 
+...
+Unseal Key: 5FFyVKcjcLTqaHuGJRp7i3Pv0XFEvuGrXZNV+U5G5YU=
+Root Token: root
+```
+
+Then enable load balancer port:
+```
+$ minikube tunnel &
+$ k get svc vault-ui
+$ 
+
+# Install Vault using Helm
+
+```
+helm repo add hashicorp https://helm.releases.hashicorp.com && helm repo update hashicorp
+helm install vault hashicorp/vault --create-namespace -n vault --values vault/values-vault.yml
+```
 
 Wait till pod is up and running
 ```
 $ k get pods
 NAME      READY   STATUS    RESTARTS   AGE
 vault-0   1/1     Running   0          4m9s
-```
-
-Start service if using minikube
-```
-minikube service vault-ui -n vault
 ```
 
 # Configure Vault
@@ -38,7 +54,7 @@ This step is only to have a secret running.  Enable and configure Kubernetes aut
 $ cd /tmp
 $ vault auth enable -path vso-auth-mount kubernetes
 ```
-Pay attention to the env variable. This allows on the vso secret, the k8s to play around
+Pay attention to the env variable. This allows on the vso secret, the k8s to play around. In other words, which K8s can authenticate against Vault?
 ```
 $ vault write auth/vso-auth-mount/config \
    kubernetes_host="https://$KUBERNETES_PORT_443_TCP_ADDR:443"
@@ -128,7 +144,13 @@ spec:
       - vault
 ```
 
-2. Create the secret names `secretkv` in the app namespace. This secret will be taken from vault, where:
+2. Create the secret names `secretkv` in the app namespace. This secret will be taken from vault
+
+```
+$ k apply -f vault/vault-static-secret.yaml
+```
+
+Where:
 ```
 ...
   namespace: app
